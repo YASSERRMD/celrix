@@ -1,0 +1,12 @@
+[package]
+name = "celrix_client"
+version = "0.1.0"
+edition = "2021"
+description = "Official Rust client for CELRIX database"
+license = "MIT"
+
+[dependencies]
+tokio = { version = "1.0", features = ["full"] }
+bytes = "1.0"
+thiserror = "1.0"
+atoi = "2.0"
