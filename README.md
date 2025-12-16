@@ -1,285 +1,108 @@
 <p align="center">
-  <h1 align="center">⚡ CELRIX</h1>
-  <p align="center"><strong>High-Performance In-Memory Cache Database</strong></p>
-  <p align="center">5-10x Faster Redis Alternative • Lock-Free Architecture • AI-Enhanced Features</p>
+  <img src="assets/celrix_banner.png" alt="CELRIX Logo" width="100%" />
 </p>
 
 <p align="center">
-  <a href="#features"><img src="https://img.shields.io/badge/Status-In%20Development-yellow?style=flat-square" alt="Status"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue?style=flat-square" alt="License"></a>
-  <a href="#"><img src="https://img.shields.io/badge/Language-Rust-orange?style=flat-square" alt="Language"></a>
+  <a href="https://github.com/YASSERRMD/celrix/actions"><img src="https://img.shields.io/github/actions/workflow/status/YASSERRMD/celrix/rust.yml?branch=main" alt="Build Status"></a>
+  <a href="https://crates.io/crates/celrix"><img src="https://img.shields.io/crates/v/celrix.svg" alt="Crate"></a>
+  <a href="https://github.com/YASSERRMD/celrix/blob/main/LICENSE"><img src="https://img.shields.io/github/license/YASSERRMD/celrix" alt="License"></a>
 </p>
 
----
+# CELRIX
 
-## 🎯 Overview
+**Cache at the Speed of Precision**
 
-**CELRIX** is a next-generation in-memory cache database built from the ground up for maximum throughput and minimal latency. Designed as a drop-in Redis replacement, CELRIX achieves breakthrough performance through innovative lock-free architecture and a custom binary protocol.
+CELRIX is a high-performance, in-memory key-value store with native **Vector Similarity Search** capabilities. Built in Rust, it allows you to store standard data alongside high-dimensional embeddings, enabling seamless RAG (Retrieval-Augmented Generation) workflows with microsecond latency.
 
-### Key Metrics
+## 🚀 Key Features
 
-| Metric | Target |
-|--------|--------|
-| **Throughput** | 1M+ ops/sec |
-| **P99 Latency** | <5ms |
-| **Protocol Efficiency** | 22-byte frames (vs Redis RESP 35+ bytes) |
+*   **⚡ Extreme Performance**: Engineered with Rust for zero-cost abstractions and predictable memory usage.
+*   **🧠 Native Vector Search**: Store and query 1536-dimensional embeddings (compatible with OpenAI) directly alongside your data.
+*   **🛣️ Dual Worker Pools**: Innovative architecture separates CPU-intensive Vector operations from I/O-bound KV operations.
+    *   *Result*: **5ms** KV latency even while processing heavy vector workloads.
+*   **🔌 VCP Binary Protocol**: Custom "Vector Cache Protocol" optimized for minimal overhead.
+*   **🌐 Multi-Language Support**: Official clients for **Rust**, **Go**, **TypeScript**, and **Python**.
+*   **🛡️ Thread-Safe & Concurrent**: DashMap-backed storage with fine-grained locking and sharding.
 
----
+## 📊 Performance Benchmark (Phase 11)
 
-## ✨ Features
+Tested on mixed workloads (KV + Vector RAG Cycles):
 
-### Core Cache (Phase 1)
-- ⚡ **VCP Protocol** - Custom binary protocol with 22-byte frames
-- 🔑 **Basic Commands** - PING, GET, SET, DEL, EXISTS
-- ⏰ **TTL Support** - Automatic key expiration with background cleaner
-- 📊 **Metrics** - Operations counters and latency measurement
-- 🖥️ **CLI Client** - Built-in test client
+| Operation | P50 Latency (Isolated) | Throughput |
+| :--- | :--- | :--- |
+| **Light KV (64B)** | **5.6 ms** | ~2,100 ops/sec |
+| **Vector Search** | **117.0 ms** | (Compute Bound) |
 
-### High Concurrency (Phase 2)
-- 🧵 **Multi-core Workers** - One acceptor + N worker executors pinned to cores
-- 🔓 **Lock-Free Data Structures** - RCU HashMap for zero-contention reads
-- 📬 **MPMC Queues** - Bounded command routing between tasks
-- 🚫 **Zero-Allocation Hot Path** - Pooled buffers and pre-allocated frames
+*> "The Dual Pool architecture ensures that CPU-heavy vector searches never stall your critical key-value lookups."*
 
-### Advanced Performance (Phase 3)
-- 🔌 **Connection Multiplexing** - Handle thousands of concurrent connections
-- 📦 **Request Pipelining** - Batch multiple commands per round-trip
-- 🔢 **Extended Commands** - SCAN, MGET/MSET, INCR/DECR
-- 🧹 **Smart Eviction** - LRU/LFU policies with configurable memory limits
+## 🛠️ Installation & Usage
 
-### AI & Vector Add-ons (Phase 4)
-- 🧠 **Embedding Store** - Store and retrieve vector embeddings
-- ⚡ **SIMD Acceleration** - AVX2-optimized similarity search
-- 🔍 **Semantic Caching** - Query by similarity with configurable thresholds
-- 🔗 **External Integration** - HTTP/gRPC hooks for LLM/embedding services
+### Docker (Recommended)
+```bash
+docker pull ghcr.io/yasserrmd/celrix:latest
+docker run -p 6380:6380 celrix
+```
 
-### Production Ready (Phase 5)
-- 💾 **Persistence** - RDB-style snapshots and AOF write-ahead logging
-- 📈 **Observability** - Prometheus metrics, detailed tracing
-- ⚙️ **Admin API** - Hot configuration, policy changes, health monitoring
-- 🔒 **Battle-Tested** - Fuzzing, chaos testing, load benchmarks
+### Building from Source
+```bash
+git clone https://github.com/YASSERRMD/celrix.git
+cd celrix
+cargo build --release
+./target/release/celrix-server --port 6380 --kv-workers 8 --vector-workers 4
+```
 
----
+### CLI Arguments
+| Flag | Default | Description |
+| :--- | :--- | :--- |
+| `--port` | 6380 | Server listening port |
+| `--kv-workers` | Auto | Threads for SET/GET ops (pinned to cores) |
+| `--vector-workers` | 4 | Threads for VADD/VSEARCH (unpinned) |
+
+## 📦 Client SDKs
+
+We provide first-party clients to help you integrate CELRIX into your stack.
+
+### Rust
+```rust
+use celrix_client::Client;
+
+let mut client = Client::connect("127.0.0.1:6380").await?;
+client.set("user:1", "John Doe", None).await?;
+client.vadd("user:1:embed", &vector).await?;
+let similar = client.vsearch(&query_vector, 5).await?;
+```
+
+### Go
+```go
+client, _ := celrix.NewClient("127.0.0.1:6380")
+client.Set("user:1", "Jane Doe", 0)
+results, _ := client.VSearch(queryVector, 5)
+```
+
+### TypeScript
+```typescript
+import { CelrixClient } from 'celrix-client';
+
+const client = new CelrixClient({ host: '127.0.0.1', port: 6380 });
+await client.set('slogan', 'Cache at the Speed of Precision');
+```
 
 ## 🏗️ Architecture
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                         CELRIX Server                            │
-├─────────────────────────────────────────────────────────────────┤
-│  ┌───────────┐    ┌─────────────┐    ┌─────────────────────┐   │
-│  │  Network  │───▶│  VCP Parser │───▶│   Command Router    │   │
-│  │  (Tokio)  │    │  (22-byte)  │    │   (MPMC Queue)      │   │
-│  └───────────┘    └─────────────┘    └──────────┬──────────┘   │
-│                                                  │              │
-│  ┌──────────────────────────────────────────────▼──────────┐   │
-│  │                   Worker Pool (N cores)                  │   │
-│  │  ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐       │   │
-│  │  │Worker 0 │ │Worker 1 │ │Worker 2 │ │Worker N │       │   │
-│  │  └────┬────┘ └────┬────┘ └────┬────┘ └────┬────┘       │   │
-│  └───────┼───────────┼───────────┼───────────┼─────────────┘   │
-│          │           │           │           │                  │
-│  ┌───────▼───────────▼───────────▼───────────▼─────────────┐   │
-│  │              Lock-Free RCU HashMap                       │   │
-│  │  ┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐           │   │
-│  │  │Shard 0 │ │Shard 1 │ │Shard 2 │ │Shard N │           │   │
-│  │  └────────┘ └────────┘ └────────┘ └────────┘           │   │
-│  └─────────────────────────────────────────────────────────┘   │
-│                                                                 │
-│  ┌─────────────┐  ┌──────────────┐  ┌──────────────────────┐   │
-│  │ TTL Cleaner │  │  Persistence │  │  Vector Store (AI)   │   │
-│  │ (Background)│  │  (RDB/AOF)   │  │  (SIMD Accelerated)  │   │
-│  └─────────────┘  └──────────────┘  └──────────────────────┘   │
-└─────────────────────────────────────────────────────────────────┘
-```
+CELRIX uses a **Dual-Lane Event Loop**:
+1.  **KV Lane**: Powered by a sharded `DashMap` and pinned worker threads. Optimized for `O(1)` access and minimal context switching.
+2.  **Vector Lane**: Dedicated pool for computing Cosine Similarity on `Vec<f32>`.
 
----
-
-## 🔧 VCP Protocol (Velocity Cache Protocol)
-
-CELRIX uses a custom binary protocol optimized for performance:
-
-### Frame Format
-
-```
-┌──────────────────────────────────────────────────────────────┐
-│                      VCP Frame (22 bytes header)             │
-├──────────┬──────────┬──────────┬──────────┬─────────────────┤
-│  Magic   │ Version  │  OpCode  │  Flags   │  Payload Len    │
-│ (4 bytes)│ (1 byte) │ (1 byte) │ (2 bytes)│   (4 bytes)     │
-├──────────┴──────────┴──────────┴──────────┴─────────────────┤
-│  Request ID (8 bytes)  │  Reserved (2 bytes)                │
-├─────────────────────────────────────────────────────────────┤
-│                     Payload (variable)                       │
-│               (length-prefixed arguments)                    │
-└─────────────────────────────────────────────────────────────┘
-```
-
-### Supported Operations
-
-| OpCode | Command | Description |
-|--------|---------|-------------|
-| 0x01 | PING | Health check |
-| 0x02 | GET | Retrieve value by key |
-| 0x03 | SET | Store key-value pair |
-| 0x04 | DEL | Delete key |
-| 0x05 | EXISTS | Check key existence |
-| 0x10 | MGET | Multi-get |
-| 0x11 | MSET | Multi-set |
-| 0x20 | INCR | Atomic increment |
-| 0x21 | DECR | Atomic decrement |
-| 0x30 | SCAN | Iterate keyspace |
-| 0x40 | VSIM | Vector similarity search |
-
----
-
-## 🚀 Quick Start
-
-### Prerequisites
-
-- Rust 1.75+ (with cargo)
-- Linux/macOS (Windows support planned)
-
-### Build from Source
-
-```bash
-# Clone the repository
-git clone https://github.com/YASSERRMD/celrix.git
-cd celrix
-
-# Build release binary
-cargo build --release
-
-# Run the server
-./target/release/celrix-server --port 6380
-
-# In another terminal, use the CLI client
-./target/release/celrix-cli --host 127.0.0.1 --port 6380
-```
-
-### Basic Usage
-
-```bash
-# Connect to CELRIX
-celrix-cli> PING
-PONG
-
-# Set a value (with optional TTL in seconds)
-celrix-cli> SET mykey "Hello, CELRIX!" 3600
-OK
-
-# Get a value
-celrix-cli> GET mykey
-"Hello, CELRIX!"
-
-# Check existence
-celrix-cli> EXISTS mykey
-1
-
-# Delete a key
-celrix-cli> DEL mykey
-1
-```
-
----
-
-## 📊 Benchmarks
-
-*Coming soon - benchmarks comparing CELRIX against Redis, KeyDB, and Dragonfly*
-
-### Planned Test Scenarios
-
-- **Throughput**: Single-node ops/sec with varying payload sizes
-- **Latency**: P50/P95/P99 under different load patterns
-- **Scalability**: Performance vs core count
-- **Memory Efficiency**: Overhead per key-value pair
-
----
-
-## 🛠️ Configuration
-
-```toml
-# celrix.toml
-
-[server]
-bind = "0.0.0.0"
-port = 6380
-workers = 0  # 0 = auto-detect CPU cores
-
-[memory]
-max_memory = "8GB"
-eviction_policy = "lru"  # lru, lfu, random, none
-
-[persistence]
-enabled = true
-snapshot_interval = 300  # seconds
-aof_enabled = true
-aof_fsync = "everysec"  # always, everysec, no
-
-[networking]
-tcp_keepalive = 300
-max_connections = 10000
-pipeline_limit = 1000
-
-[ai]
-enabled = false
-embedding_dim = 1536
-similarity_threshold = 0.85
-```
-
----
-
-## 🗺️ Roadmap
-
-- [x] **Phase 0**: Project Setup & Documentation
-- [ ] **Phase 1**: Minimal Core Cache (VCP + Basic Commands)
-- [ ] **Phase 2**: Concurrency & Lock-Free Architecture
-- [ ] **Phase 3**: Advanced Performance Features
-- [ ] **Phase 4**: AI & Vector Capabilities
-- [ ] **Phase 5**: Production Reliability
-
----
+This separation guarantees that your application remains responsive even under heavy AI/ML load.
 
 ## 🤝 Contributing
 
-Contributions are welcome! Please read our [Contributing Guide](CONTRIBUTING.md) for details on our code of conduct and the process for submitting pull requests.
-
-### Development Setup
-
+Contributions are welcome! Please ensure you run the stress test suite before submitting a PR.
 ```bash
-# Clone and setup
-git clone https://github.com/YASSERRMD/celrix.git
-cd celrix
-
-# Run tests
 cargo test
-
-# Run benchmarks
-cargo bench
-
-# Check formatting
-cargo fmt --check
-
-# Run clippy
-cargo clippy -- -D warnings
+cargo run --release --example stress
 ```
-
----
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
----
-
-## 🙏 Acknowledgments
-
-- Inspired by Redis, KeyDB, and Dragonfly
-- Built with [Tokio](https://tokio.rs/) for async I/O
-- Uses [crossbeam](https://github.com/crossbeam-rs/crossbeam) for lock-free data structures
-
----
-
-<p align="center">
-  <sub>Built with ❤️ and Rust</sub>
-</p>
+MIT License. See [LICENSE](LICENSE) for details.
