@@ -60,6 +60,7 @@ num_cpus = "1.16"
 
 [dev-dependencies]
 tokio-test = "0.4"
+tempfile = "3.14"
 
 [profile.release]
 opt-level = 3
