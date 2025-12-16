@@ -1,0 +1,63 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: celrix
+  namespace: celrix
+spec:
+  serviceName: celrix
+  replicas: 3
+  selector:
+    matchLabels:
+      app: celrix
+  template:
+    metadata:
+      labels:
+        app: celrix
+    spec:
+      containers:
+      - name: celrix
+        image: celrix/celrix:latest
+        ports:
+        - containerPort: 6380
+          name: celrix
+        - containerPort: 9090
+          name: admin
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "500m"
+          limits:
+            memory: "2Gi"
+            cpu: "2000m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: admin
+          initialDelaySeconds: 10
+          periodSeconds: 5
+        volumeMounts:
+        - name: data
+          mountPath: /data
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      resources:
+        requests:
+          storage: 10Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: celrix
+  namespace: celrix
+spec:
+  type: ClusterIP
+  ports:
+  - port: 6380
+    name: celrix
+  - port: 9090
+    name: admin
+  selector:
+    app: celrix

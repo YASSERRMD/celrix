@@ -4,6 +4,7 @@
 //! and custom binary protocol (VCP - Velocity Cache Protocol).
 
 pub mod cluster;
+pub mod disaster_recovery;
 pub mod metrics;
 pub mod observability;
 pub mod persistence;
@@ -14,8 +15,9 @@ pub mod storage;
 pub mod vector;
 
 pub use cluster::{Node, RaftNode, ReplicationManager, ShardManager};
+pub use disaster_recovery::{FailoverManager, GeoReplication, PointInTimeRecovery};
 pub use metrics::Metrics;
-pub use observability::{HealthCheck, PrometheusExporter};
+pub use observability::{AdminApi, Benchmark, HealthCheck, LoadTestStats, PrometheusExporter};
 pub use persistence::{AofWriter, Snapshot, SnapshotConfig};
 pub use protocol::{Command, ExtendedCommand, Frame, Response, VcpCodec};
 pub use security::{AclManager, AuthManager, AuditLogger, TlsConfig};
