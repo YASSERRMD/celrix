@@ -1,9 +1,13 @@
 //! Observability Module
 //!
-//! Prometheus metrics, health checks, and diagnostics.
+//! Prometheus metrics, health checks, admin API, and diagnostics.
 
-mod prometheus_metrics;
+mod admin;
 mod health;
+mod loadtest;
+mod prometheus_metrics;
 
-pub use prometheus_metrics::{PrometheusExporter, MetricsRegistry};
+pub use admin::{AdminApi, AdminConfig, AdminRequest, AdminResponse};
 pub use health::{HealthCheck, HealthStatus, SystemHealth};
+pub use loadtest::{Benchmark, BenchmarkResult, LoadTestConfig, LoadTestStats};
+pub use prometheus_metrics::{MetricsRegistry, PrometheusExporter};

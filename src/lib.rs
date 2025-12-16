@@ -15,7 +15,7 @@ pub mod vector;
 
 pub use cluster::{Node, RaftNode, ReplicationManager, ShardManager};
 pub use metrics::Metrics;
-pub use observability::{HealthCheck, PrometheusExporter};
+pub use observability::{AdminApi, Benchmark, HealthCheck, LoadTestStats, PrometheusExporter};
 pub use persistence::{AofWriter, Snapshot, SnapshotConfig};
 pub use protocol::{Command, ExtendedCommand, Frame, Response, VcpCodec};
 pub use security::{AclManager, AuthManager, AuditLogger, TlsConfig};
