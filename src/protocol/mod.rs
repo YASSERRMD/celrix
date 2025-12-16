@@ -5,10 +5,12 @@
 
 mod codec;
 mod command;
+mod extended_commands;
 mod frame;
 mod response;
 
 pub use codec::VcpCodec;
 pub use command::Command;
+pub use extended_commands::ExtendedCommand;
 pub use frame::{Frame, FrameHeader, OpCode, HEADER_SIZE, MAGIC};
 pub use response::Response;
