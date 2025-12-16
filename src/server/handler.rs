@@ -5,6 +5,7 @@
 use crate::metrics::Metrics;
 use crate::protocol::{Command, Response, VcpCodec};
 use crate::storage::Store;
+use crate::vector::SemanticCache;
 use futures::{SinkExt, StreamExt};
 use std::sync::Arc;
 use std::time::Instant;
@@ -15,13 +16,14 @@ use tracing::debug;
 /// Connection handler
 pub struct Handler {
     store: Store,
+    vector_store: SemanticCache,
     metrics: Arc<Metrics>,
 }
 
 impl Handler {
     /// Create a new handler
-    pub fn new(store: Store, metrics: Arc<Metrics>) -> Self {
-        Self { store, metrics }
+    pub fn new(store: Store, vector_store: SemanticCache, metrics: Arc<Metrics>) -> Self {
+        Self { store, vector_store, metrics }
     }
 
     /// Run the handler for a connection
@@ -72,6 +74,21 @@ impl Handler {
             Command::Exists { key } => {
                 let exists = self.store.exists(&key);
                 Response::Integer(if exists { 1 } else { 0 })
+            }
+
+            Command::VAdd { key, vector } => {
+                // Use key as value for now
+                let value = key.clone();
+                match self.vector_store.set(key, vector, value, None) {
+                    Ok(_) => Response::Ok,
+                    Err(e) => Response::Error(e),
+                }
+            }
+
+            Command::VSearch { vector, k } => {
+                let results = self.vector_store.semantic_get(&vector);
+                let keys: Vec<bytes::Bytes> = results.into_iter().map(|r| r.key).collect();
+                Response::Array(keys)
             }
         }
     }

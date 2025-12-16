@@ -47,7 +47,11 @@ pub enum OpCode {
     Value = 0x12,
     Nil = 0x13,
     Integer = 0x14,
-    Array = 0x15, // For multi-value responses
+    Array = 0x15,
+
+    // Vector operations (Phase 4/9)
+    VAdd = 0x20,
+    VSearch = 0x21,
 }
 
 impl OpCode {
@@ -74,6 +78,8 @@ impl OpCode {
             0x13 => Some(OpCode::Nil),
             0x14 => Some(OpCode::Integer),
             0x15 => Some(OpCode::Array),
+            0x20 => Some(OpCode::VAdd),
+            0x21 => Some(OpCode::VSearch),
             _ => None,
         }
     }

@@ -26,6 +26,9 @@ pub enum Response {
 
     /// Pong response (for PING)
     Pong,
+
+    /// Array response (list of byte arrays)
+    Array(Vec<Bytes>),
 }
 
 impl Response {
@@ -38,6 +41,16 @@ impl Response {
             Response::Integer(n) => Frame::integer(request_id, *n),
             Response::Error(msg) => Frame::error(request_id, msg),
             Response::Pong => Frame::pong(request_id),
+            Response::Array(items) => {
+                use bytes::{BufMut, BytesMut};
+                let mut buf = BytesMut::new();
+                buf.put_u32(items.len() as u32);
+                for item in items {
+                    buf.put_u32(item.len() as u32);
+                    buf.put_slice(item);
+                }
+                Frame::new(OpCode::Array, request_id, buf.freeze())
+            }
         }
     }
 
@@ -63,6 +76,26 @@ impl Response {
                 let msg = String::from_utf8_lossy(&frame.payload).to_string();
                 Ok(Response::Error(msg))
             }
+            OpCode::Array => {
+                if frame.payload.len() < 4 {
+                    return Err(std::io::Error::new(std::io::ErrorKind::InvalidData, "Invalid array payload"));
+                }
+                let mut buf = frame.payload.clone();
+                use bytes::Buf;
+                let count = buf.get_u32() as usize;
+                let mut items = Vec::with_capacity(count);
+                for _ in 0..count {
+                    if buf.remaining() < 4 {
+                        return Err(std::io::Error::new(std::io::ErrorKind::UnexpectedEof, "Insufficient array data"));
+                    }
+                    let len = buf.get_u32() as usize;
+                    if buf.remaining() < len {
+                        return Err(std::io::Error::new(std::io::ErrorKind::UnexpectedEof, "Insufficient item data"));
+                    }
+                    items.push(buf.copy_to_bytes(len));
+                }
+                Ok(Response::Array(items))
+            }
             _ => Err(std::io::Error::new(
                 std::io::ErrorKind::InvalidData,
                 format!("Unexpected opcode for response: {:?}", frame.header.opcode),
@@ -83,6 +116,15 @@ impl std::fmt::Display for Response {
             Response::Integer(n) => write!(f, "(integer) {}", n),
             Response::Error(msg) => write!(f, "(error) {}", msg),
             Response::Pong => write!(f, "PONG"),
+            Response::Array(items) => {
+                write!(f, "[")?;
+                for (i, item) in items.iter().enumerate() {
+                    if i > 0 { write!(f, ", ")?; }
+                    let s = String::from_utf8_lossy(item);
+                    write!(f, "\"{}\"", s)?;
+                }
+                write!(f, "]")
+            }
         }
     }
 }

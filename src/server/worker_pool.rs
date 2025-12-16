@@ -9,6 +9,7 @@ use tracing::{debug, info};
 use crate::metrics::Metrics;
 use crate::protocol::Command;
 use crate::storage::ConcurrentStore;
+use crate::vector::{SemanticCache, SemanticResult};
 
 use super::command_queue::{CommandQueue, WorkItem, WorkResult};
 
@@ -38,6 +39,7 @@ pub struct WorkerPool {
     config: WorkerPoolConfig,
     queue: CommandQueue,
     store: ConcurrentStore,
+    vector_store: SemanticCache,
     metrics: Arc<Metrics>,
     handles: Vec<JoinHandle<()>>,
 }
@@ -47,6 +49,7 @@ impl WorkerPool {
     pub fn new(
         config: WorkerPoolConfig,
         store: ConcurrentStore,
+        vector_store: SemanticCache,
         metrics: Arc<Metrics>,
     ) -> Self {
         let queue = CommandQueue::new(config.queue_capacity);
@@ -54,6 +57,7 @@ impl WorkerPool {
             config,
             queue,
             store,
+            vector_store,
             metrics,
             handles: Vec::new(),
         }
@@ -77,9 +81,11 @@ impl WorkerPool {
 
         for i in 0..num_workers {
             let receiver = self.queue.receiver();
-            let store = self.store.clone();
-            let metrics = self.metrics.clone();
-            let core_id = if self.config.pin_to_cores && i < core_ids.len() {
+                    let store = self.store.clone();
+                    let vector_store = self.vector_store.clone();
+                    let metrics = self.metrics.clone();
+                    // ... (pinning logc)
+                    let core_id = if self.config.pin_to_cores && i < core_ids.len() {
                 Some(core_ids[i])
             } else {
                 None
@@ -96,7 +102,7 @@ impl WorkerPool {
                     }
 
                     info!("Worker {} started", i);
-                    Self::worker_loop(i, receiver, store, metrics);
+                    Self::worker_loop(i, receiver, store, vector_store, metrics);
                     info!("Worker {} stopped", i);
                 })
                 .expect("Failed to spawn worker thread");
@@ -115,13 +121,14 @@ impl WorkerPool {
         worker_id: usize,
         receiver: crossbeam::channel::Receiver<WorkItem>,
         store: ConcurrentStore,
+        vector_store: SemanticCache,
         metrics: Arc<Metrics>,
     ) {
         while let Ok(work_item) = receiver.recv() {
             let start = std::time::Instant::now();
             let cmd_name = format!("{:?}", work_item.command);
 
-            let result = Self::execute_command(&store, work_item.command);
+            let result = Self::execute_command(&store, &vector_store, work_item.command);
 
             // Send response back
             if work_item.response_tx.send(result).is_err() {
@@ -134,7 +141,7 @@ impl WorkerPool {
     }
 
     /// Execute a command against the store
-    fn execute_command(store: &ConcurrentStore, cmd: Command) -> WorkResult {
+    fn execute_command(store: &ConcurrentStore, vector_store: &SemanticCache, cmd: Command) -> WorkResult {
         match cmd {
             Command::Ping => WorkResult::Pong,
 
@@ -156,6 +163,32 @@ impl WorkerPool {
             Command::Exists { key } => {
                 let exists = store.exists(&key);
                 WorkResult::Integer(if exists { 1 } else { 0 })
+            }
+
+            Command::VAdd { key, vector } => {
+                // For VADD, we need a value. For now using empty value or key as value.
+                // The protocol command VAdd only has key and vector.
+                // EmbeddingStore assumes Set takes (key, entry).
+                // SemanticCache::set takes (key, embedding, value, metadata).
+                // We'll use the key as the "value" payload for now, or empty bytes.
+                let value = key.clone(); 
+                match vector_store.set(key, vector, value, None) {
+                    Ok(_) => WorkResult::Ok,
+                    Err(e) => WorkResult::Error(e),
+                }
+            }
+
+            Command::VSearch { vector, k } => {
+                let results = vector_store.semantic_get(&vector);
+                
+                // Return array of keys
+                let mut array = Vec::with_capacity(results.len());
+                for res in results {
+                    // For now just return the key.
+                    // Ideally we return [key, score] pairs, but simple key list is OK for verification.
+                    array.push(WorkResult::Value(res.key));
+                }
+                WorkResult::Array(array)
             }
         }
     }
