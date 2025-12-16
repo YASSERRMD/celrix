@@ -1,0 +1,5 @@
+apiVersion: v2
+name: celrix
+description: High-Performance In-Memory Cache Database
+version: 0.1.0
+appVersion: "0.1.0"

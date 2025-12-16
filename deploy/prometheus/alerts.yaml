@@ -1,0 +1,42 @@
+groups:
+  - name: celrix.rules
+    rules:
+      - alert: CelrixHighMemory
+        expr: celrix_memory_bytes / celrix_memory_limit_bytes > 0.8
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory usage on {{ $labels.instance }}"
+
+      - alert: CelrixReplicationLag
+        expr: celrix_replication_lag_bytes > 1000000
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Replication lag on {{ $labels.instance }}"
+
+      - alert: CelrixNodeDown
+        expr: up{job="celrix"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Node {{ $labels.instance }} is down"
+
+      - alert: CelrixHighLatency
+        expr: histogram_quantile(0.99, rate(celrix_command_duration_seconds_bucket[5m])) > 0.01
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High P99 latency on {{ $labels.instance }}"
+
+      - alert: CelrixSplitBrain
+        expr: count(celrix_cluster_role == 1) > 1
+        for: 10s
+        labels:
+          severity: critical
+        annotations:
+          summary: "Split-brain detected"
