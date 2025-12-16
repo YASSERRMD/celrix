@@ -9,6 +9,12 @@ pub struct Config {
     /// Port number
     pub port: u16,
 
+    /// Number of KV worker threads (0 = auto-detect)
+    pub kv_workers: usize,
+
+    /// Number of Vector worker threads (0 = auto-detect)
+    pub vector_workers: usize,
+
     /// TTL cleaner interval in seconds
     pub ttl_cleaner_interval: u64,
 }
@@ -18,6 +24,8 @@ impl Default for Config {
         Self {
             bind: "0.0.0.0".to_string(),
             port: 6380,
+            kv_workers: 0,     // Auto-detect (typically num_cores)
+            vector_workers: 4, // Conservative default for heavy vector ops
             ttl_cleaner_interval: 10,
         }
     }

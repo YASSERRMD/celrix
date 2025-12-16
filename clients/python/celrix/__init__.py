@@ -1,3 +1,3 @@
-from .client import Client as CelrixClient
+from .client import CelrixClient
 
 __all__ = ["CelrixClient"]

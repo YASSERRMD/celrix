@@ -28,6 +28,18 @@ pub enum Command {
 
     /// Check if key exists
     Exists { key: Bytes },
+
+    /// Add vector embedding
+    VAdd {
+        key: Bytes,
+        vector: Vec<f32>,
+    },
+
+    /// Search for similar vectors
+    VSearch {
+        vector: Vec<f32>,
+        k: usize,
+    },
 }
 
 impl Command {
@@ -68,6 +80,38 @@ impl Command {
                 Ok(Command::Exists { key })
             }
 
+            OpCode::VAdd => {
+                let mut payload = frame.payload.clone();
+                let key = Self::read_length_prefixed_buf(&mut payload)?;
+                let count = payload.get_u32() as usize;
+                let mut vector = Vec::with_capacity(count);
+                for _ in 0..count {
+                    if payload.remaining() < 4 {
+                        return Err(io::Error::new(io::ErrorKind::UnexpectedEof, "Insufficient vector data"));
+                    }
+                    vector.push(payload.get_f32());
+                }
+                Ok(Command::VAdd { key, vector })
+            }
+
+            OpCode::VSearch => {
+                let mut payload = frame.payload.clone();
+                let count = payload.get_u32() as usize;
+                let mut vector = Vec::with_capacity(count);
+                for _ in 0..count {
+                    if payload.remaining() < 4 {
+                        return Err(io::Error::new(io::ErrorKind::UnexpectedEof, "Insufficient vector data"));
+                    }
+                    vector.push(payload.get_f32());
+                }
+                let k = if payload.remaining() >= 4 {
+                    payload.get_u32() as usize
+                } else {
+                    10 // Default k
+                };
+                Ok(Command::VSearch { vector, k })
+            }
+
             _ => Err(io::Error::new(
                 io::ErrorKind::InvalidData,
                 format!("Unexpected opcode for command: {:?}", frame.header.opcode),
@@ -101,6 +145,26 @@ impl Command {
             Command::Exists { key } => {
                 let payload = Self::write_length_prefixed(key);
                 (OpCode::Exists, payload)
+            }
+
+            Command::VAdd { key, vector } => {
+                let mut buf = BytesMut::new();
+                Self::write_length_prefixed_buf(&mut buf, key);
+                buf.put_u32(vector.len() as u32);
+                for &f in vector {
+                    buf.put_f32(f);
+                }
+                (OpCode::VAdd, buf.freeze())
+            }
+
+            Command::VSearch { vector, k } => {
+                let mut buf = BytesMut::new();
+                buf.put_u32(vector.len() as u32);
+                for &f in vector {
+                    buf.put_f32(f);
+                }
+                buf.put_u32(*k as u32);
+                (OpCode::VSearch, buf.freeze())
             }
         }
     }

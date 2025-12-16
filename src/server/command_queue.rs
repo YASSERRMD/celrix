@@ -34,6 +34,8 @@ pub enum WorkResult {
     Error(String),
     /// Pong response
     Pong,
+    /// Array response
+    Array(Vec<WorkResult>),
 }
 
 /// Bounded MPMC command queue

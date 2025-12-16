@@ -25,17 +25,17 @@ struct Args {
     #[arg(long, default_value_t = 10)]
     ttl_interval: u64,
 
-    /// Number of worker threads (0 = auto-detect based on CPU cores)
-    #[arg(short, long, default_value_t = 0)]
-    workers: usize,
+    /// Number of KV worker threads (0 = auto-detect based on CPU cores)
+    #[arg(long, default_value_t = 0)]
+    kv_workers: usize,
+
+    /// Number of Vector worker threads (0 = auto-detect, default 4)
+    #[arg(long, default_value_t = 4)]
+    vector_workers: usize,
 
     /// Enable concurrent/multi-threaded mode (Phase 2)
     #[arg(long, default_value_t = true)]
     concurrent: bool,
-
-    /// Pin worker threads to CPU cores
-    #[arg(long, default_value_t = true)]
-    pin_cores: bool,
 
     /// Command queue capacity
     #[arg(long, default_value_t = 10000)]
@@ -51,26 +51,25 @@ async fn main() -> anyhow::Result<()> {
 
     let args = Args::parse();
 
-    let config = Config::default()
+    let mut config = Config::default()
         .with_bind(&args.bind)
         .with_port(args.port)
         .with_ttl_interval(args.ttl_interval);
 
-    if args.concurrent {
-        let num_workers = if args.workers == 0 {
-            num_cpus::get()
-        } else {
-            args.workers
-        };
+    config.kv_workers = args.kv_workers;
+    config.vector_workers = args.vector_workers;
 
+    if args.concurrent {
         info!(
-            "Starting CELRIX concurrent server on {}:{} with {} workers",
-            args.bind, args.port, num_workers
+            "Starting CELRIX concurrent server on {}:{} with {} KV workers and {} Vector workers",
+            args.bind, args.port, 
+            if args.kv_workers == 0 { num_cpus::get() } else { args.kv_workers },
+            args.vector_workers
         );
 
         let worker_config = WorkerPoolConfig {
-            num_workers: args.workers,
-            pin_to_cores: args.pin_cores,
+            num_workers: args.kv_workers, // Ignored
+            pin_to_cores: true, // Ignored
             queue_capacity: args.queue_capacity,
         };
 
