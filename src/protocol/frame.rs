@@ -26,12 +26,28 @@ pub enum OpCode {
     Del = 0x05,
     Exists = 0x06,
 
+    // Multi-key operations (Phase 3)
+    MGet = 0x07,
+    MSet = 0x08,
+    MDel = 0x09,
+
+    // Atomic operations (Phase 3)
+    Incr = 0x0A,
+    Decr = 0x0B,
+    IncrBy = 0x0C,
+    DecrBy = 0x0D,
+
+    // Keyspace operations (Phase 3)
+    Scan = 0x0E,
+    Keys = 0x0F,
+
     // Response codes
     Ok = 0x10,
     Error = 0x11,
     Value = 0x12,
     Nil = 0x13,
     Integer = 0x14,
+    Array = 0x15, // For multi-value responses
 }
 
 impl OpCode {
@@ -43,11 +59,21 @@ impl OpCode {
             0x04 => Some(OpCode::Set),
             0x05 => Some(OpCode::Del),
             0x06 => Some(OpCode::Exists),
+            0x07 => Some(OpCode::MGet),
+            0x08 => Some(OpCode::MSet),
+            0x09 => Some(OpCode::MDel),
+            0x0A => Some(OpCode::Incr),
+            0x0B => Some(OpCode::Decr),
+            0x0C => Some(OpCode::IncrBy),
+            0x0D => Some(OpCode::DecrBy),
+            0x0E => Some(OpCode::Scan),
+            0x0F => Some(OpCode::Keys),
             0x10 => Some(OpCode::Ok),
             0x11 => Some(OpCode::Error),
             0x12 => Some(OpCode::Value),
             0x13 => Some(OpCode::Nil),
             0x14 => Some(OpCode::Integer),
+            0x15 => Some(OpCode::Array),
             _ => None,
         }
     }
