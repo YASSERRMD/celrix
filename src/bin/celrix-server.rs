@@ -1,9 +1,10 @@
 //! CELRIX Server Binary
 //!
 //! High-performance in-memory cache server.
+//! Supports both single-threaded and multi-threaded concurrent modes.
 
-use celrix::server::Config;
-use celrix::Server;
+use celrix::server::{Config, WorkerPoolConfig};
+use celrix::{ConcurrentServer, Server};
 use clap::Parser;
 use tracing::info;
 use tracing_subscriber::{fmt, EnvFilter};
@@ -23,6 +24,22 @@ struct Args {
     /// TTL cleaner interval in seconds
     #[arg(long, default_value_t = 10)]
     ttl_interval: u64,
+
+    /// Number of worker threads (0 = auto-detect based on CPU cores)
+    #[arg(short, long, default_value_t = 0)]
+    workers: usize,
+
+    /// Enable concurrent/multi-threaded mode (Phase 2)
+    #[arg(long, default_value_t = true)]
+    concurrent: bool,
+
+    /// Pin worker threads to CPU cores
+    #[arg(long, default_value_t = true)]
+    pin_cores: bool,
+
+    /// Command queue capacity
+    #[arg(long, default_value_t = 10000)]
+    queue_capacity: usize,
 }
 
 #[tokio::main]
@@ -34,18 +51,40 @@ async fn main() -> anyhow::Result<()> {
 
     let args = Args::parse();
 
-    info!(
-        "Starting CELRIX server on {}:{}",
-        args.bind, args.port
-    );
-
     let config = Config::default()
         .with_bind(&args.bind)
         .with_port(args.port)
         .with_ttl_interval(args.ttl_interval);
 
-    let server = Server::new(config);
-    server.run().await?;
+    if args.concurrent {
+        let num_workers = if args.workers == 0 {
+            num_cpus::get()
+        } else {
+            args.workers
+        };
+
+        info!(
+            "Starting CELRIX concurrent server on {}:{} with {} workers",
+            args.bind, args.port, num_workers
+        );
+
+        let worker_config = WorkerPoolConfig {
+            num_workers: args.workers,
+            pin_to_cores: args.pin_cores,
+            queue_capacity: args.queue_capacity,
+        };
+
+        let server = ConcurrentServer::with_worker_config(config, worker_config);
+        server.run().await?;
+    } else {
+        info!(
+            "Starting CELRIX single-threaded server on {}:{}",
+            args.bind, args.port
+        );
+
+        let server = Server::new(config);
+        server.run().await?;
+    }
 
     Ok(())
 }
