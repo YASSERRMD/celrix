@@ -92,6 +92,7 @@ pub fn euclidean_distance(a: &[f32], b: &[f32]) -> f32 {
 }
 
 /// Normalize a vector in place
+#[allow(dead_code)]
 pub fn normalize_vector(v: &mut [f32]) {
     let mag: f32 = v.iter().map(|x| x * x).sum::<f32>().sqrt();
     if mag > 0.0 {
@@ -102,6 +103,7 @@ pub fn normalize_vector(v: &mut [f32]) {
 }
 
 /// Normalize and return a new vector
+#[allow(dead_code)]
 pub fn normalized(v: &[f32]) -> Vec<f32> {
     let mut result = v.to_vec();
     normalize_vector(&mut result);
