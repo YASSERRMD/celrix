@@ -7,8 +7,10 @@ pub mod metrics;
 pub mod protocol;
 pub mod server;
 pub mod storage;
+pub mod vector;
 
 pub use metrics::Metrics;
-pub use protocol::{Command, Frame, Response, VcpCodec};
+pub use protocol::{Command, ExtendedCommand, Frame, Response, VcpCodec};
 pub use server::{ConcurrentServer, Config, Server, WorkerPoolConfig};
-pub use storage::{ConcurrentStore, Store};
+pub use storage::{ConcurrentStore, EvictionConfig, EvictionPolicy, Store};
+pub use vector::{EmbeddingStore, SemanticCache};
