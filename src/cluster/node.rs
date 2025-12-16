@@ -3,7 +3,6 @@
 //! Represents a node in the CELRIX cluster.
 
 use std::net::SocketAddr;
-use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::Instant;
 
 /// Unique node identifier

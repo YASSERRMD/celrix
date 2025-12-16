@@ -4,10 +4,10 @@
 
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicU64, Ordering};
-use std::sync::{Arc, RwLock};
-use std::time::{Duration, Instant};
+use std::sync::RwLock;
+use std::time::Instant;
 
-use super::node::{NodeId, NodeRole};
+use super::node::NodeId;
 
 /// Replication mode
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -125,6 +125,7 @@ pub struct ReplicationManager {
     /// Replication buffer
     buffer: RwLock<Vec<ReplicationEntry>>,
     /// Am I the leader?
+    #[allow(dead_code)]
     is_leader: RwLock<bool>,
 }
 
@@ -275,11 +276,12 @@ mod tests {
         manager.record(ReplicationOp::Set, b"data".to_vec());
         manager.record(ReplicationOp::Set, b"data".to_vec());
 
-        // Replica 1 acks
+        // Replica 1 fully caught up
         manager.ack(1, 2);
         assert_eq!(manager.get_lag(1), Some(0));
 
-        // Replica 2 hasn't acked
+        // Replica 2 partially caught up (ack with offset 0 to update lag)
+        manager.ack(2, 0);
         assert_eq!(manager.get_lag(2), Some(2));
     }
 

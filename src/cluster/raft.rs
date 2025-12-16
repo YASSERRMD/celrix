@@ -4,10 +4,10 @@
 
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicU64, Ordering};
-use std::sync::{Arc, RwLock};
-use std::time::{Duration, Instant};
+use std::sync::RwLock;
+use std::time::Instant;
 
-use super::node::{NodeId, NodeRole};
+use super::node::NodeId;
 
 /// Raft configuration
 #[derive(Debug, Clone)]
@@ -226,8 +226,11 @@ impl RaftNode {
             self.become_follower(req.term, None);
         }
 
-        let voted_for = self.voted_for.read().unwrap();
-        let can_vote = voted_for.is_none() || *voted_for == Some(req.candidate_id);
+        // Check if we can vote (read lock scope)
+        let can_vote = {
+            let voted_for = self.voted_for.read().unwrap();
+            voted_for.is_none() || *voted_for == Some(req.candidate_id)
+        };
 
         // Check log is up-to-date
         let last_index = self.last_log_index();
@@ -237,6 +240,7 @@ impl RaftNode {
 
         let vote_granted = can_vote && log_ok;
 
+        // Record vote if granted (separate write lock scope)
         if vote_granted && !req.pre_vote {
             *self.voted_for.write().unwrap() = Some(req.candidate_id);
         }

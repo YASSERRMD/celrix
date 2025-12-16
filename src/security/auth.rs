@@ -4,7 +4,7 @@
 
 use std::collections::HashMap;
 use std::sync::RwLock;
-use std::time::{Duration, Instant};
+use std::time::Instant;
 
 /// Authentication result
 #[derive(Debug, Clone, PartialEq, Eq)]
