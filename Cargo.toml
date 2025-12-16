@@ -33,6 +33,11 @@ bytes = "1.9"
 # High-performance HashMap
 hashbrown = "0.15"
 
+# Lock-free concurrent data structures (Phase 2)
+dashmap = "6.1"
+crossbeam = "0.8"
+parking_lot = "0.12"
+
 # CLI parsing
 clap = { version = "4.5", features = ["derive"] }
 
@@ -46,6 +51,12 @@ anyhow = "1.0"
 
 # Time utilities
 chrono = "0.4"
+
+# Core affinity for worker threads (Phase 2)
+core_affinity = "0.8"
+
+# Number of CPUs
+num_cpus = "1.16"
 
 [dev-dependencies]
 tokio-test = "0.4"

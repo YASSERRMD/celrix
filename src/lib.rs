@@ -10,5 +10,5 @@ pub mod storage;
 
 pub use metrics::Metrics;
 pub use protocol::{Command, Frame, Response, VcpCodec};
-pub use server::{Config, Server};
-pub use storage::Store;
+pub use server::{ConcurrentServer, Config, Server, WorkerPoolConfig};
+pub use storage::{ConcurrentStore, Store};
