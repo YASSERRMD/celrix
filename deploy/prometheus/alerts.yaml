@@ -1,0 +1,196 @@
+# CELRIX Prometheus Alerting Rules
+groups:
+  - name: celrix.rules
+    rules:
+      # High Memory Usage
+      - alert: CelrixHighMemoryUsage
+        expr: celrix_memory_bytes / celrix_memory_limit_bytes > 0.8
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "CELRIX high memory usage"
+          description: "Memory usage is above 80% on {{ $labels.instance }}"
+
+      - alert: CelrixCriticalMemoryUsage
+        expr: celrix_memory_bytes / celrix_memory_limit_bytes > 0.95
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "CELRIX critical memory usage"
+          description: "Memory usage is above 95% on {{ $labels.instance }}"
+
+      # Key Evictions
+      - alert: CelrixHighEvictionRate
+        expr: rate(celrix_evictions_total[5m]) > 100
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "CELRIX high eviction rate"
+          description: "Evicting more than 100 keys/sec on {{ $labels.instance }}"
+
+      # Replication Lag
+      - alert: CelrixReplicationLag
+        expr: celrix_replication_lag_bytes > 1000000
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "CELRIX replication lag"
+          description: "Replication lag is {{ $value }} bytes on {{ $labels.instance }}"
+
+      - alert: CelrixReplicationLagCritical
+        expr: celrix_replication_lag_bytes > 10000000
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "CELRIX critical replication lag"
+          description: "Replication lag exceeds 10MB on {{ $labels.instance }}"
+
+      # Connection Pool
+      - alert: CelrixHighConnections
+        expr: celrix_connections_active > 9000
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "CELRIX high connection count"
+          description: "{{ $value }} active connections on {{ $labels.instance }}"
+
+      - alert: CelrixConnectionPoolExhausted
+        expr: celrix_connections_active >= celrix_connections_max
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "CELRIX connection pool exhausted"
+          description: "No more connections available on {{ $labels.instance }}"
+
+      # Latency
+      - alert: CelrixHighLatency
+        expr: histogram_quantile(0.99, rate(celrix_command_duration_seconds_bucket[5m])) > 0.01
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "CELRIX high latency"
+          description: "P99 latency is {{ $value }}s on {{ $labels.instance }}"
+
+      - alert: CelrixCriticalLatency
+        expr: histogram_quantile(0.99, rate(celrix_command_duration_seconds_bucket[5m])) > 0.1
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "CELRIX critical latency"
+          description: "P99 latency exceeds 100ms on {{ $labels.instance }}"
+
+      # Cluster Health
+      - alert: CelrixNodeDown
+        expr: up{job="celrix"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "CELRIX node down"
+          description: "{{ $labels.instance }} is not responding"
+
+      - alert: CelrixClusterNoQuorum
+        expr: sum(celrix_cluster_node_healthy) < (count(celrix_cluster_node_healthy) / 2 + 1)
+        for: 30s
+        labels:
+          severity: critical
+        annotations:
+          summary: "CELRIX cluster lost quorum"
+          description: "Cluster has lost quorum, unable to accept writes"
+
+      - alert: CelrixSplitBrain
+        expr: count(celrix_cluster_role == 1) > 1
+        for: 10s
+        labels:
+          severity: critical
+        annotations:
+          summary: "CELRIX split-brain detected"
+          description: "Multiple nodes claim to be leader"
+
+      # Persistence
+      - alert: CelrixSnapshotFailed
+        expr: celrix_snapshot_last_success_timestamp < time() - 7200
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "CELRIX snapshot overdue"
+          description: "No successful snapshot in last 2 hours on {{ $labels.instance }}"
+
+      - alert: CelrixAofWriteErrors
+        expr: rate(celrix_aof_write_errors_total[5m]) > 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "CELRIX AOF write errors"
+          description: "AOF write failures on {{ $labels.instance }}"
+
+      # Error Rates
+      - alert: CelrixHighErrorRate
+        expr: rate(celrix_commands_failed_total[5m]) / rate(celrix_commands_total[5m]) > 0.01
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "CELRIX high error rate"
+          description: "Error rate is {{ $value | humanizePercentage }} on {{ $labels.instance }}"
+
+      # CPU
+      - alert: CelrixHighCpuUsage
+        expr: rate(process_cpu_seconds_total{job="celrix"}[5m]) > 0.8
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "CELRIX high CPU usage"
+          description: "CPU usage is {{ $value | humanizePercentage }} on {{ $labels.instance }}"
+
+      # Slow Commands
+      - alert: CelrixSlowCommands
+        expr: rate(celrix_slow_commands_total[5m]) > 10
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "CELRIX slow commands detected"
+          description: "{{ $value }} slow commands/s on {{ $labels.instance }}"
+
+      # Disk Space
+      - alert: CelrixDiskSpaceLow
+        expr: celrix_disk_usage_bytes / celrix_disk_capacity_bytes > 0.85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "CELRIX disk space low"
+          description: "Disk usage is {{ $value | humanizePercentage }} on {{ $labels.instance }}"
+
+      # Client Rejections
+      - alert: CelrixClientRejections
+        expr: rate(celrix_rejected_connections_total[5m]) > 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "CELRIX rejecting connections"
+          description: "Rejecting {{ $value }} connections/s on {{ $labels.instance }}"
+
+      # Cache Hit Ratio
+      - alert: CelrixLowCacheHitRatio
+        expr: rate(celrix_cache_hits_total[5m]) / (rate(celrix_cache_hits_total[5m]) + rate(celrix_cache_misses_total[5m])) < 0.5
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "CELRIX low cache hit ratio"
+          description: "Cache hit ratio is {{ $value | humanizePercentage }} on {{ $labels.instance }}"

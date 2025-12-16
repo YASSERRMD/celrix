@@ -4,6 +4,7 @@
 //! and custom binary protocol (VCP - Velocity Cache Protocol).
 
 pub mod cluster;
+pub mod disaster_recovery;
 pub mod metrics;
 pub mod observability;
 pub mod persistence;

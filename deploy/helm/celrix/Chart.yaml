@@ -1,0 +1,17 @@
+apiVersion: v2
+name: celrix
+description: High-Performance In-Memory Cache Database - Redis Alternative
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+keywords:
+  - cache
+  - database
+  - redis
+  - in-memory
+  - high-performance
+maintainers:
+  - name: CELRIX Team
+    email: team@celrix.io
+sources:
+  - https://github.com/YASSERRMD/celrix

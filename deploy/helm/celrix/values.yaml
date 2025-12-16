@@ -1,0 +1,138 @@
+# Default values for CELRIX
+replicaCount: 3
+
+image:
+  repository: celrix/celrix
+  pullPolicy: IfNotPresent
+  tag: "latest"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+# Cluster configuration
+cluster:
+  enabled: true
+  # Address for cluster bus
+  clusterBusPort: 16380
+
+# Server configuration
+server:
+  port: 6380
+  # Number of worker threads (0 = auto-detect)
+  workers: 0
+  # Max connections
+  maxConnections: 10000
+  # TCP keepalive
+  tcpKeepalive: 300
+
+# Persistence configuration
+persistence:
+  enabled: true
+  # Storage class
+  storageClass: ""
+  # Storage size
+  size: 10Gi
+  # Access mode
+  accessMode: ReadWriteOnce
+  
+# Snapshot configuration
+snapshot:
+  enabled: true
+  # Snapshot interval in seconds
+  interval: 300
+  # Max snapshots to keep
+  maxSnapshots: 5
+
+# AOF configuration
+aof:
+  enabled: true
+  # Sync mode: always, everysec, no
+  syncMode: everysec
+
+# Admin API configuration
+admin:
+  enabled: true
+  port: 9090
+  # Enable authentication
+  auth:
+    enabled: false
+    apiKey: ""
+
+# TLS configuration
+tls:
+  enabled: false
+  # Certificate secret name
+  secretName: celrix-tls
+  # Require client certs (mTLS)
+  clientAuth: false
+
+# Resources
+resources:
+  requests:
+    memory: "512Mi"
+    cpu: "500m"
+  limits:
+    memory: "2Gi"
+    cpu: "2000m"
+
+# Node selector
+nodeSelector: {}
+
+# Tolerations
+tolerations: []
+
+# Affinity
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+    - weight: 100
+      podAffinityTerm:
+        labelSelector:
+          matchExpressions:
+          - key: app
+            operator: In
+            values:
+            - celrix
+        topologyKey: kubernetes.io/hostname
+
+# Service account
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+# Pod annotations
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "9090"
+  prometheus.io/path: "/metrics"
+
+# Pod security context
+podSecurityContext:
+  fsGroup: 1000
+
+# Container security context
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+
+# Metrics
+metrics:
+  enabled: true
+  serviceMonitor:
+    enabled: false
+    interval: 15s
+    namespace: ""
+
+# Alerts
+alerts:
+  enabled: false
+  # Alert rules
+  rules:
+    highMemoryUsage:
+      threshold: 80
+    highCpuUsage:
+      threshold: 80
+    replicationLag:
+      threshold: 1000
