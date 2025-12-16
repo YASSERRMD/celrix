@@ -1,0 +1,22 @@
+{
+  "name": "@celrix/client",
+  "version": "0.1.0",
+  "description": "TypeScript client for CELRIX database",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "database",
+    "redis",
+    "client"
+  ],
+  "author": "YASSERRMD",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
+  }
+}
